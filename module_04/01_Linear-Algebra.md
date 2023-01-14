@@ -5,9 +5,9 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.10.3
+    jupytext_version: 1.11.4
 kernelspec:
-  display_name: Python 3
+  display_name: Python 3 (ipykernel)
   language: python
   name: python3
 ---
@@ -55,6 +55,8 @@ import numpy as np
 ```{code-cell} ipython3
 A=np.array([[-7,3,0],[7,-19,12],[0,4,-12]])
 b=np.array([-20,0,-8])
+
+print(A)
 
 x = np.linalg.solve(A,b)
 for i in range(0,3):
@@ -127,7 +129,7 @@ for i in range(0,3):
     print(A[i],'\t',b[i])
 ```
 
-Now, you can solve for $\mathbf{x}$ with the function `np.linalg.solve`.
+#### Now, you can solve for $\mathbf{x}$ with the function `np.linalg.solve`.
 This is an advanced linear algebra solver that incorporates some ideas
 we will explore in [Module 02](./02_Gauss_elimination). For now,
 we just want to understand the inputs and outputs
@@ -562,4 +564,4 @@ print(u[-3:,-3:])
 
 2. Kiusalaas, Jaan _Numerical Methods in Engineering with Python 3._ __ch 2.__ Cambridge University Press. 
 
-3. [_"Essence of Linear Algebra"_](http://3b1b.co/eola) 3 Blue 1 Brown Linear algebra series. 
+3. [_"Essence of Linear Algebra"_](http://3b1b.co/eola) 3 Blue 1 Brown Linear algebra series.
