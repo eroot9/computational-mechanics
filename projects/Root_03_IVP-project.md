@@ -5,9 +5,9 @@ jupytext:
     extension: .md
     format_name: myst
     format_version: 0.13
-    jupytext_version: 1.10.3
+    jupytext_version: 1.11.4
 kernelspec:
-  display_name: Python 3
+  display_name: Python 3 (ipykernel)
   language: python
   name: python3
 ---
@@ -59,7 +59,7 @@ Your first objective is to integrate a numerical model that converges to
 equation (2.b), the Tsiolkovsky equation. Next, you will add drag and
 gravity and compare the results _between equations (1) and (2)_.
 Finally, you will vary the mass change rate to achieve the desired
-detonation height. 
+detonation height.
 
 +++
 
@@ -113,9 +113,10 @@ def simplerocket(state,dmdt=0.05, u=250):
     -------
     derivs: array of three derivatives [v (u/m*dmdt-g-c/mv^2) -dmdt]^T
     '''
-    
     dstate = np.zeros(np.shape(state))
-    # your work
+    dstate[0] = state[1]
+    dstate[1] = u*dmdt/state[2]
+    dstate[2] = -dmdt #losing fuel, therefore change in mass is negative
     return dstate
 ```
 
@@ -123,9 +124,46 @@ def simplerocket(state,dmdt=0.05, u=250):
 m0=0.25
 mf=0.05
 dm=0.05
-t = np.linspace(0,(m0-mf)/dm,500)
+t = np.linspace(0,(m0-mf)/dm,20)
 dt=t[1]-t[0]
+
+u = 250
+m_T = np.linspace(0.05, 0.25)
+v_T = -u*np.log(m_T/0.25)
+
+plt.plot(m_T, v_T)
+plt.xlabel('Mass (kg)')
+plt.ylabel('Speed (m/s)')
+plt.title('Simple Rocket')
 ```
+
+```{code-cell} ipython3
+from scipy.integrate import solve_ivp
+
+sol = solve_ivp(lambda t, y: simplerocket(y),
+               [0, t[-1]],
+               [0, 0, 0.25],
+               t_eval = t) #Makes the solution a smoother line
+
+plt.plot(sol.y[2], sol.y[1])
+plt.xlabel('Mass (kg)')
+plt.ylabel('Speed (m/s)')
+plt.title('Tsiolkovsky')
+```
+
+```{code-cell} ipython3
+plt.plot(sol.y[2], sol.y[1], 's', label = 'Tsiolkovsky')
+
+plt.plot(m_T, v_T, label = 'Simple Rocket')
+plt.xlabel('Mass (kg)')
+plt.ylabel('Speed (m/s)')
+plt.title('Simple Rocket vs. Tsiolkovsky')
+plt.legend()
+```
+
+As shown above, the simple rocket function and the Tsiolkovsky data do converge with each other. The graphs are pretty much identical, meaning our simple rocket function works.
+
++++
 
 __2.__ You should have a converged solution for integrating `simplerocket`. Now, create a more relastic function, `rocket` that incorporates gravity and drag and returns the velocity, $v$, the acceleration, $a$, and the mass rate change $\frac{dm}{dt}$, as a function of the $state = [position,~velocity,~mass] = [y,~v,~m]$ using eqn (1). Where the mass rate change $\frac{dm}{dt}$ and the propellent speed $u$ are constants. The average velocity of gun powder propellent used in firework rockets is $u=250$ m/s [3,4]. 
 
@@ -157,8 +195,107 @@ def rocket(state,dmdt=0.05, u=250,c=0.18e-3):
     '''
     g=9.81
     dstate = np.zeros(np.shape(state))
-    # your work
+    dstate[0] = state[1]
+    dstate[1] = u*dmdt/state[2] - g - c*state[1]**2/state[2]
+    dstate[2] = -dmdt 
     return dstate
+```
+
+```{code-cell} ipython3
+m0=0.25
+mf=0.05
+dm=0.05
+t = np.linspace(0,(m0-mf)/dm_1,20)
+dt=t[1]-t[0]
+
+u = 250
+m_T = np.linspace(0.05, 0.25)
+v_T = -u*np.log(m_T/0.25)
+
+plt.plot(m_T, v_T)
+plt.xlabel('Mass (kg)')
+plt.ylabel('Speed (m/s)')
+plt.title('Simple Rocket')
+```
+
+```{code-cell} ipython3
+from scipy.integrate import solve_ivp
+
+sol = solve_ivp(lambda t, y: rocket(y, dmdt = 0.05),
+               [0, t[-1]],
+               [0, 0, 0.25],
+               t_eval = t) #Makes the solution a smoother line
+
+plt.plot(sol.y[2], sol.y[1])
+plt.xlabel('Mass (kg)')
+plt.ylabel('Speed (m/s)')
+plt.title('Tsiolkovsky')
+```
+
+```{code-cell} ipython3
+plt.plot(sol.y[2], sol.y[1], 's', label = 'Tsiolkovsky')
+
+plt.plot(m_T, v_T, label = 'Simple Rocket')
+plt.xlabel('Mass (kg)')
+plt.ylabel('Speed (m/s)')
+plt.title('Simple Rocket vs. Tsiolkovsky\n Change in Mass = 0.05 kg')
+plt.legend()
+```
+
+For a smaller dm value, like 0.05, the two graphs do not converge. The Tsiolkovsky data is much lower towards the beinging of the motion, starting at around 250 m/s. However, with a larger value for dm like 1, the two graphs will converge with each other. It will have a much bigger thrust, therefore starting with a much higher speed. This motion happens very fast, with a time step of about 0.2 s. When using a large dm value, it means that the fuel is being burned quicker, so with a very large dm value the equation is describing an explosion. 
+
+```{code-cell} ipython3
+sol_2 = solve_ivp(lambda t, y: rocket(y, dmdt = 1),
+               [0, t[-1]],
+               [0, 0, 0.25],
+               t_eval = t) #Makes the solution a smoother line
+
+plt.plot(sol.y[2], sol.y[1])
+plt.xlabel('Mass (kg)')
+plt.ylabel('Speed (m/s)')
+plt.title('Tsiolkovsky')
+plt.plot(sol.y[2], sol.y[1], 's', label = 'Tsiolkovsky')
+
+
+plt.xlabel('Mass (kg)')
+plt.ylabel('Speed (m/s)')
+plt.title('Simple Rocket vs. Tsiolkovsky\n Change in Mass = 1 kg')
+plt.legend()
+```
+
+While this graph is not using the given inital value for the change in mass, it is showing that when the dm is a larger value, the two graphs will converge.
+
+```{code-cell} ipython3
+plt.plot(sol.t, sol.y[0])
+plt.plot(sol.t[-1], sol.y[0, -1], '*', markersize = 20)
+plt.title('Rocket Height vs. Time')
+plt.xlabel('Time (s)')
+plt.ylabel('Height (m)')
+```
+
+```{code-cell} ipython3
+height = sol.y[0, -1]
+print('When the mass reaches 0.05 kg the height of the rocket is approximately {:.4f} m.'.format(height))
+```
+
+The height will change depending on how large the dm value is, however I kept the given initial value of dm = 0.05 kg. If you make the dm value smaller, the fuel will burn slower meaning that the rocket will have more fuel to fly higher, whereas if you make the dm value much larger, the rocket will only fly a short height before exploding. This can be seen in the graph below.
+
+```{code-cell} ipython3
+for dm in [0.01, 0.05, 0.1, 0.15]:
+    t = np.linspace(0,(m0-mf)/dm,20)
+    
+    sol = solve_ivp(lambda t, y: rocket(y, dmdt = dm),
+               [0, t[-1]],
+               [0, 0, 0.25],
+               t_eval = t) #Makes the solution a smoother line
+    plt.plot(sol.t, sol.y[0])
+    plt.plot(sol.t[-1], sol.y[0, -1], '*', markersize = 20, label = 'dm = {}'.format(dm))
+
+plt.title('Rocket Height vs. Time')
+plt.legend()
+plt.xlabel('Time (s)')
+plt.ylabel('Height (m)')
+plt.legend(bbox_to_anchor = (1, 1))
 ```
 
 __3.__ Solve for the mass change rate that results in detonation at a height of 300 meters. Create a function `f_dm` that returns the final height of the firework when it reaches $m_{f}=0.05~kg$. The inputs should be 
@@ -199,8 +336,56 @@ def f_dm(dmdt, m0 = 0.25, c = 0.18e-3, u = 250):
     error: the difference between height_desired and height_predicted[-1]
         when f_dm(dmdt) = 0, the correct mass change rate was chosen
     '''
-    # your work
+    t = np.linspace(0,(m0-mf)/dmdt,20)
+    
+    sol = solve_ivp(lambda t, y: rocket(y, dmdt = dmdt),
+               [0, t[-1]],
+               [0, 0, 0.25])
+    
+    error = sol.y[0, -1] - 300
     return error
+```
+
+```{code-cell} ipython3
+def incsearch(func,xmin,xmax,ns=50):
+    '''incsearch: incremental search root locator
+    xb = incsearch(func,xmin,xmax,ns):
+      finds brackets of x that contain sign changes
+      of a function on an interval
+    arguments:
+    ---------
+    func = name of function
+    xmin, xmax = endpoints of interval
+    ns = number of subintervals (default = 50)
+    returns:
+    ---------
+    xb(k,1) is the lower bound of the kth sign change
+    xb(k,2) is the upper bound of the kth sign change
+    If no brackets found, xb = [].'''
+    x = np.linspace(xmin,xmax,ns)
+    f = [func(xi) for xi in x]
+    sign_f = np.sign(f)
+    delta_sign_f = sign_f[1:]-sign_f[0:-1]
+    i_zeros = np.nonzero(delta_sign_f!=0)
+    nb = len(i_zeros[0])
+    xb = np.block([[ x[i_zeros[0]+1]],[x[i_zeros[0]] ]] )
+
+    
+    if nb==0:
+      print('no brackets found\n')
+      print('check interval or increase ns\n')
+    else:
+      print('number of brackets:  {}\n'.format(nb))
+    return xb
+```
+
+```{code-cell} ipython3
+print('3a.')
+
+close_values = incsearch(f_dm, 0.01, 0.1)
+
+print('The closest two mass rate change rates are {} kg and {} kg.'.format(close_values[0, 0], format(close_values[1, 0])))
+      
 ```
 
 ```{code-cell} ipython3
@@ -236,6 +421,34 @@ def mod_secant(func,dx,x0,es=0.0001,maxit=50):
         if ea <= es:
             break
     return xr,[func(xr),ea,iter]
+```
+
+```{code-cell} ipython3
+print('3b.')
+root = mod_secant(f_dm, 0.01, 0.05)
+
+print('The modified secant method produced {:.4f} kg as the root of the function.'.format(root[0]))
+```
+
+The modified secant function only matches up with the values found using the f_dm function when the dt value is very small. In this case, I used 0.01 kg.
+
+```{code-cell} ipython3
+print('3c.')
+for dm in [root[0]]:
+    t = np.linspace(0,(m0-mf)/dm,20)
+    
+    sol = solve_ivp(lambda t, y: rocket(y, dmdt = dm),
+               [0, t[-1]],
+               [0, 0, 0.25],
+               t_eval = t) #Makes the solution a smoother line
+    plt.plot(sol.t, sol.y[0])
+    plt.plot(sol.t[-1], sol.y[0, -1], '*', markersize = 20, label = 'dm = {:.4f}'.format(dm))
+
+plt.title('Rocket Height vs. Time')
+plt.legend()
+plt.xlabel('Time (s)')
+plt.ylabel('Height (m)')
+plt.legend(bbox_to_anchor = (1, 1))
 ```
 
 ## References
